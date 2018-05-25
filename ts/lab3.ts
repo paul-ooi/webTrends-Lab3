@@ -25,6 +25,8 @@ let Toronto : LatLng =
 let map :any;
 let mapMarkers : MapMarker[] = [];
 let gcode : object;
+let counter : number = 0;
+let indexCounter : number = 0;
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
@@ -32,50 +34,52 @@ function initMap() {
         zoom: 12
     });
 
-}
+    gcode = new google.maps.Geocoder();
+    placeMarker();
+}//END OF INITMAP
 
 
-//GET ADDRESSES FROM THE JSON
-$.ajax (
+//CALL LOCAL JSON FILE TO GET PARTIAL ADDRESSES
+$.ajax(
     'data/ac-public-places.json',
     {
         dataType: 'json',
-        success: function(data:any) {
+        success: function (data: any) {
             for (let d of data) {
-                // console.log(d);
-                
                 //ADD MAP MARKER TO ARRAY OF MAP MARKERS
-                let newMapMarker : MapMarker = new MapMarker(d.address);
+                let newMapMarker: MapMarker = new MapMarker(d.address);
                 mapMarkers.push(newMapMarker);
             }
-            console.log(mapMarkers);
-        },
-        complete: function() {
-            //GO THROUGH EACH MARKER AND GET THE COORDINATES
-            for (let m of mapMarkers) {
-                let query = encodeURI('https://maps.googleapis.com/maps/api/geocode/json?address=' + m.Address + " Ontario, Canada " + '&key=AIzaSyCBflXrPRKWmeB2Le3LiGcUovAMljbtcQI');
-                setTimeout(function() {
-                    $.ajax(query,
-                        {
-                            dataType: 'json',
-                            success: function(gdata:any) {
-                                console.log(gdata);
-                                //ASSIGN THE LOCATION VALUE TO THE MARKER OBJECT
-                                m.LatLong = gdata.results[0].geometry.location;
-                                if (!gdata.results[0]) {
-                                    gdata.results.geometry.location;
-                                }
-                                console.log(m);
-                                //PLACE MARKER ON MAP
-                                let markerPin = new google.maps.Marker({
-                                    'title': 'Cool place to be',
-                                    'position': m.LatLong,
-                                    'map': map,//SET MARKER ON MAP
-                                });
-                            }
-                        });
-                    },275);//SET A TIMEOUT TO MANAGE THE REQUESTS TO THE GEOCODE SERVICE
-            }//end of For Loop
         }
-}
+    }
 );
+
+//PLACE MARKER
+function placeMarker () : void {
+    if (indexCounter < mapMarkers.length) {
+        let m = mapMarkers[indexCounter];
+        gcode.geocode({ 'address': m.Address + " Toronto, ON" }, function (results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                m.LatLong = results[0].geometry.location;
+                console.log(status);
+                counter++;
+                console.log(counter);
+                indexCounter++;
+                setTimeout(placeMarker, 300);//DELAY THE CALL WHEN SUCCESSFUL TO AVOID REACHING THE LIMIT PER SECOND
+            } else {
+                console.log(status);
+                console.log(m.Address);
+                setTimeout(placeMarker, 1600);
+            }
+        });
+                    
+    } else {
+        for (let m of mapMarkers) {
+            let marker = new google.maps.Marker({
+                'title': 'Cool place to be',
+                'position': m.LatLong,
+                'map': map,//SET MARKER ON MAP
+            });
+        }
+    }
+}// END OF PLACEMARKER
