@@ -35,3 +35,47 @@ function initMap() {
 }
 
 
+//GET ADDRESSES FROM THE JSON
+$.ajax (
+    'data/ac-public-places.json',
+    {
+        dataType: 'json',
+        success: function(data:any) {
+            for (let d of data) {
+                // console.log(d);
+                
+                //ADD MAP MARKER TO ARRAY OF MAP MARKERS
+                let newMapMarker : MapMarker = new MapMarker(d.address);
+                mapMarkers.push(newMapMarker);
+            }
+            console.log(mapMarkers);
+        },
+        complete: function() {
+            //GO THROUGH EACH MARKER AND GET THE COORDINATES
+            for (let m of mapMarkers) {
+                let query = encodeURI('https://maps.googleapis.com/maps/api/geocode/json?address=' + m.Address + " Ontario, Canada " + '&key=AIzaSyCBflXrPRKWmeB2Le3LiGcUovAMljbtcQI');
+                setTimeout(function() {
+                    $.ajax(query,
+                        {
+                            dataType: 'json',
+                            success: function(gdata:any) {
+                                console.log(gdata);
+                                //ASSIGN THE LOCATION VALUE TO THE MARKER OBJECT
+                                m.LatLong = gdata.results[0].geometry.location;
+                                if (!gdata.results[0]) {
+                                    gdata.results.geometry.location;
+                                }
+                                console.log(m);
+                                //PLACE MARKER ON MAP
+                                let markerPin = new google.maps.Marker({
+                                    'title': 'Cool place to be',
+                                    'position': m.LatLong,
+                                    'map': map,//SET MARKER ON MAP
+                                });
+                            }
+                        });
+                    },275);//SET A TIMEOUT TO MANAGE THE REQUESTS TO THE GEOCODE SERVICE
+            }//end of For Loop
+        }
+}
+);
